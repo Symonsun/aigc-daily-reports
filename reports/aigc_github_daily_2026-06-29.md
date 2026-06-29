@@ -1,3 +1,8 @@
+---
+layout: default
+title: "AIGC GitHub Daily - 2026-06-29"
+---
+
 # AIGC GitHub Daily - 2026-06-29
 
 统计范围：最近 1 天创建或更新的 AIGC / LLM / AI Agent / RAG / 多模态相关 GitHub 项目。
