@@ -5,7 +5,9 @@ title: AIGC GitHub Daily
 
 # AIGC GitHub Daily 日报
 
-每日自动抓取 GitHub 上 AIGC / LLM / AI Agent / RAG / 多模态生成相关项目，按热度与相关度排序生成。每天上午 10:00（北京时间）更新。
+每日自动抓取 GitHub（新建/热门/Trending）、Hugging Face、arXiv 上 AIGC / LLM / AI Agent / RAG / 多模态相关项目，去重 + 分类后生成。每天上午 10:00（北京时间）更新。
+
+👉 **[打开交互筛选页 explore.html](explore.html)**（按日期 / 类别 / 来源 / 关键词筛选）
 
 共 **2** 期日报：
 

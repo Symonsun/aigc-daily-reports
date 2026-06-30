@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIGC Daily · 项目浏览</title>
+<style>
+  :root { --bg:#0f1115; --card:#171a21; --line:#262b36; --fg:#e6e9ef; --muted:#9aa4b2;
+          --accent:#5b9cff; --chip:#222735; --new:#2ecc71; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif; }
+  header { padding:24px 20px 8px; max-width:1100px; margin:0 auto; }
+  h1 { margin:0 0 4px; font-size:22px; letter-spacing:.3px; }
+  .sub { color:var(--muted); font-size:13px; }
+  .wrap { max-width:1100px; margin:0 auto; padding:12px 20px 60px; }
+  .controls { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start;
+              background:var(--card); border:1px solid var(--line); border-radius:12px;
+              padding:14px 16px; position:sticky; top:0; z-index:5; }
+  .controls .group { display:flex; flex-direction:column; gap:6px; }
+  .controls label.lbl { font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
+  select, input[type=search] { background:#0c0e13; color:var(--fg); border:1px solid var(--line);
+              border-radius:8px; padding:7px 10px; font-size:14px; outline:none; }
+  input[type=search] { min-width:220px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; max-width:560px; }
+  .chip { cursor:pointer; user-select:none; background:var(--chip); border:1px solid var(--line);
+          color:var(--fg); border-radius:999px; padding:5px 11px; font-size:12.5px; }
+  .chip.on { background:var(--accent); border-color:var(--accent); color:#06122b; font-weight:600; }
+  .bar { display:flex; align-items:center; justify-content:space-between; margin:16px 2px 10px; }
+  .count { color:var(--muted); font-size:13px; }
+  .reset { cursor:pointer; color:var(--accent); font-size:13px; background:none; border:none; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; }
+  .item { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 15px; }
+  .item h3 { margin:0 0 6px; font-size:15px; }
+  .item h3 a { color:var(--fg); text-decoration:none; }
+  .item h3 a:hover { color:var(--accent); }
+  .meta { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+  .tag { font-size:11.5px; color:var(--muted); background:#0c0e13; border:1px solid var(--line);
+         border-radius:6px; padding:2px 7px; }
+  .tag.cat { color:#cdd6e6; }
+  .tag.new { color:#06210f; background:var(--new); border-color:var(--new); font-weight:600; }
+  .desc { color:var(--muted); font-size:13px; margin-top:6px; }
+  .empty { color:var(--muted); text-align:center; padding:50px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AIGC Daily · 项目浏览</h1>
+  <div class="sub">GitHub 新建/热门 · Hugging Face · arXiv ｜ 按日期 / 类别 / 来源 / 关键词筛选 · <a href="index.html" style="color:var(--accent)">返回首页</a></div>
+</header>
+<div class="wrap">
+  <div class="controls">
+    <div class="group">
+      <label class="lbl" for="f-date">日期</label>
+      <select id="f-date"><option value="">全部日期</option></select>
+    </div>
+    <div class="group">
+      <label class="lbl" for="f-sort">排序</label>
+      <select id="f-sort">
+        <option value="stars">按 Star/热度</option>
+        <option value="date">按日期（新→旧）</option>
+      </select>
+    </div>
+    <div class="group">
+      <label class="lbl" for="f-q">搜索</label>
+      <input id="f-q" type="search" placeholder="名称 / 描述关键词…">
+    </div>
+    <div class="group" style="flex:1">
+      <label class="lbl">来源</label>
+      <div class="chips" id="f-source"></div>
+    </div>
+    <div class="group" style="flex:1">
+      <label class="lbl">类别</label>
+      <div class="chips" id="f-category"></div>
+    </div>
+  </div>
+  <div class="bar">
+    <span class="count" id="count">加载中…</span>
+    <button class="reset" id="reset">重置筛选</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">没有符合条件的项目。</div>
+</div>
+<script>
+const state = { date:"", q:"", sort:"stars", sources:new Set(), cats:new Set() };
+let DATA = [];
+
+function uniq(arr){ return [...new Set(arr)]; }
+function chip(text, set, container){
+  const el = document.createElement("span");
+  el.className = "chip"; el.textContent = text;
+  el.onclick = () => { if(set.has(text)) set.delete(text); else set.add(text);
+    el.classList.toggle("on"); render(); };
+  container.appendChild(el);
+}
+function esc(s){ return (s||"").replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+function render(){
+  let rows = DATA.filter(r=>{
+    if(state.date && r.date!==state.date) return false;
+    if(state.sources.size && !state.sources.has(r.source)) return false;
+    if(state.cats.size && !state.cats.has(r.category)) return false;
+    if(state.q){ const q=state.q.toLowerCase();
+      if(!((r.name||"").toLowerCase().includes(q) || (r.description||"").toLowerCase().includes(q))) return false; }
+    return true;
+  });
+  rows.sort((a,b)=> state.sort==="date"
+    ? (b.date||"").localeCompare(a.date||"") || (b.stars-a.stars)
+    : (b.stars-a.stars));
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  document.getElementById("count").textContent = rows.length + " 个项目";
+  document.getElementById("empty").style.display = rows.length? "none":"block";
+  for(const r of rows){
+    const d = document.createElement("div"); d.className="item";
+    const star = r.stars>=0 ? ("⭐ "+r.stars) : "";
+    d.innerHTML = `<h3><a href="${r.url}" target="_blank" rel="noopener">${esc(r.name)}</a></h3>
+      <div class="meta">
+        ${r.is_first_seen?'<span class="tag new">🆕 首次</span>':''}
+        <span class="tag cat">${esc(r.category)}</span>
+        <span class="tag">${esc(r.source)}</span>
+        <span class="tag">${star}</span>
+        <span class="tag">${esc(r.date)}</span>
+      </div>
+      <div class="desc">${esc(r.description).slice(0,200)}</div>`;
+    grid.appendChild(d);
+  }
+}
+
+fetch("data/index.json").then(r=>r.json()).then(data=>{
+  DATA = data;
+  const dsel = document.getElementById("f-date");
+  uniq(data.map(r=>r.date)).sort().reverse().forEach(d=>{
+    const o=document.createElement("option"); o.value=d; o.textContent=d; dsel.appendChild(o);
+  });
+  uniq(data.map(r=>r.source)).sort().forEach(s=>chip(s, state.sources, document.getElementById("f-source")));
+  uniq(data.map(r=>r.category)).sort().forEach(c=>chip(c, state.cats, document.getElementById("f-category")));
+  dsel.onchange = e=>{ state.date=e.target.value; render(); };
+  document.getElementById("f-sort").onchange = e=>{ state.sort=e.target.value; render(); };
+  document.getElementById("f-q").oninput = e=>{ state.q=e.target.value; render(); };
+  document.getElementById("reset").onclick = ()=>{
+    state.date=""; state.q=""; state.sort="stars"; state.sources.clear(); state.cats.clear();
+    dsel.value=""; document.getElementById("f-q").value=""; document.getElementById("f-sort").value="stars";
+    document.querySelectorAll(".chip.on").forEach(c=>c.classList.remove("on")); render();
+  };
+  render();
+}).catch(e=>{ document.getElementById("count").textContent="加载数据失败："+e; });
+</script>
+</body>
+</html>
