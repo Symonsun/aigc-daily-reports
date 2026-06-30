@@ -163,7 +163,7 @@ function render(){
   }
 }
 
-fetch("data/index.json").then(r=>r.json()).then(data=>{
+fetch("data/index.json?_=" + Date.now(), {cache:"no-store"}).then(r=>r.json()).then(data=>{
   DATA = data;
   const dsel = document.getElementById("f-date");
   uniq(data.map(r=>r.date)).sort().reverse().forEach(d=>{
