@@ -9,8 +9,9 @@ title: AIGC GitHub Daily
 
 👉 **[打开交互筛选页 explore.html](explore.html)**（按日期 / 类别 / 来源 / 关键词筛选）
 
-共 **16** 期日报：
+共 **17** 期日报：
 
+- [2026-07-15](reports/aigc_github_daily_2026-07-15.html)
 - [2026-07-14](reports/aigc_github_daily_2026-07-14.html)
 - [2026-07-13](reports/aigc_github_daily_2026-07-13.html)
 - [2026-07-12](reports/aigc_github_daily_2026-07-12.html)
